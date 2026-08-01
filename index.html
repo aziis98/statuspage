@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Status Page</title>
+    <link
+      id="theme-dark"
+      rel="stylesheet"
+      media="(prefers-color-scheme: dark)"
+      href="/dark.css"
+    />
+    <script>
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search).get('theme')
+          if (q === 'dark' || q === 'light' || q === 'system') {
+            localStorage.setItem('statuspage-theme', q)
+          }
+          var t = localStorage.getItem('statuspage-theme')
+          var link = document.getElementById('theme-dark')
+          if (!link) return
+          if (t === 'dark') link.media = 'all'
+          else if (t === 'light') link.media = 'not all'
+        } catch (e) {}
+      })()
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
   </head>
   <body>

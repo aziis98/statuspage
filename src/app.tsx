@@ -4,6 +4,7 @@ import { formatBytes, groupIcon, hashColor } from './format'
 import { Grid } from './components/Grid'
 import { AggregatePlot } from './components/plots'
 import { StatusModal } from './components/StatusModal'
+import { ThemeButton } from './components/ui'
 
 export function App() {
   const [data, setData] = useState<StatusPayload | null>(null)
@@ -82,6 +83,7 @@ export function App() {
           <span><span class="dot down" /> down</span>
           <span><span class="dot unknown" /> unknown</span>
         </div>
+        <ThemeButton />
       </header>
 
       {data && (

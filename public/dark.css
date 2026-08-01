@@ -1,0 +1,49 @@
+:root:root {
+  color-scheme: dark;
+
+  --bg: #0f1210;
+  --card: #171b17;
+  --surface: #1f241f;
+  --surface-muted: #2b312b;
+
+  --status-up-bg: #12281a;
+  --status-degraded-bg: #322a05;
+  --status-down-bg: #232323;
+  --status-unknown-bg: #191d19;
+  --down-chip-bg: #2a2a2a;
+  --down-chip-ink: #eee;
+  --down-chip-border: #555;
+  --dark-surface: #0a0c0a;
+  --code-bg: #0d100d;
+  --code-ink: #d6f0d8;
+  --code-border: #222722;
+
+  --ink: #e8ece7;
+  --ink-invert: #f2f2f2;
+  --muted: #9aa09a;
+  --muted-2: #8a918a;
+  --muted-3: #767d76;
+  --muted-4: #b2b8b2;
+  --muted-5: #8b928b;
+  --muted-dot: #4a514a;
+  --white: #fff;
+
+  --green: #2fbf5d;
+  --green-glow: rgba(47, 191, 93, 0.5);
+  --yellow: #e5b400;
+  --red: #ff6166;
+  --ok-soft: #12351f;
+  --ok-ink: #74e0a0;
+  --fail-soft: #3a1618;
+  --fail-ink: #ff9a9d;
+  --err: #ff6b70;
+
+  --border-ink: #3a403a;
+  --border-muted: #3a403a;
+  --shadow-color: #000;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --sheen: rgba(255, 255, 255, 0.07);
+  --sheen-strong: rgba(255, 255, 255, 0.12);
+
+  --incidents-ink: #e8e8e8;
+}
