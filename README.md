@@ -151,6 +151,7 @@ at the top of this README.
 | `--dev`             | `false`        | run `bun run build` before serving `dist/`         |
 | `--dev-server`      | `false`        | don't serve `dist/` (Vite dev server handles it)   |
 | `--mock`            | `false`        | serve generated mock data (no real probes)         |
+| `--check`           | `false`        | load + expand the config, print a machine summary, then exit |
 
 ## Configuration
 

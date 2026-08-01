@@ -19,6 +19,20 @@ func envOr(key, def string) string {
 	return def
 }
 
+func printConfigSummary(path string, cfg *Config) {
+	byGroup := map[string]int{}
+	for _, m := range cfg.Machines {
+		byGroup[m.Group]++
+	}
+	log.Printf("config %s ok: %d machines", path, len(cfg.Machines))
+	for _, g := range cfg.Groups {
+		log.Printf("  %s: %d", g.Name, byGroup[g.Name])
+	}
+	if n := byGroup[""]; n > 0 {
+		log.Printf("  (top-level): %d", n)
+	}
+}
+
 func buildFrontend() error {
 	cmd := "npm"
 	if _, err := exec.LookPath("npm"); err != nil {
@@ -41,10 +55,20 @@ func main() {
 	dev := pflag.Bool("dev", false, "run `npm run build` before serving dist/")
 	devServer := pflag.Bool("dev-server", false, "frontend served by the vite dev server, do not serve dist/")
 	mock := pflag.Bool("mock", false, "serve generated mock data instead of probing real machines")
+	check := pflag.Bool("check", false, "load and expand the config, print a machine summary, then exit")
 	addr := pflag.String("addr", envOr("ADDR", ":5000"), "listen address")
 	configPath := pflag.StringP("config", "c", envOr("CONFIG", "config.local.yaml"), "yaml config file")
 	dbPath := pflag.String("db", envOr("DB", "data.volume/history.db"), "sqlite history database file")
 	pflag.Parse()
+
+	if *check {
+		cfg, err := LoadConfig(*configPath)
+		if err != nil {
+			log.Fatalf("config check failed: %v", err)
+		}
+		printConfigSummary(*configPath, cfg)
+		return
+	}
 
 	if *dev {
 		if err := buildFrontend(); err != nil {
