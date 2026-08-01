@@ -401,6 +401,30 @@ A `machines` entry only needs `host`; `name` overrides the display name.
 Machines listed at the top level (outside any group) go into a `Machines`
 section instead.
 
+`host` accepts brace patterns that are expanded at load time:
+
+- `{1,2,3}` — enumeration
+- `{2..5,8..10}` — inclusive numeric ranges
+- `{a3,a4}` — labels (any non-range item is kept literally)
+- several groups multiply in cartesian fashion; leading zeros are preserved
+
+```yaml
+groups:
+  - name: "Server room"
+    machines:
+      - host: server-{a3,a4}-{1..10}.example.org
+```
+
+expands to `server-a3-1.example.org`, `server-a3-2.example.org`, ...,
+`server-a4-10.example.org`. A `name:` applies to every expanded machine;
+without one, each machine is named after its host. Ranges must go from a
+smaller to a larger number, and their endpoints must be integers.
+
+Malformed patterns make startup fail with an error instead of expanding
+silently: unmatched or nested `{...}` groups, ranges with non-integer
+endpoints, or ranges with extra dots (e.g. `{1..5..10}`). A single pattern may
+expand to at most 10 000 machines; anything larger is rejected too.
+
 Per-machine overrides for `ping` and `ssh` are supported, and inherit
 unset values from the top level:
 

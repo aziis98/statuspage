@@ -104,6 +104,26 @@
 #         ssh:
 #           interval: 1m
 #           user: root
+#
+#   # host patterns are expanded at load time. Inside a {...} group:
+#   #   {1,2,3}      enumeration            -> 1, 2, 3
+#   #   {2..5,8..10} inclusive numeric range -> 2, 3, 4, 5, 8, 9, 10
+#   #   {a3,a4}      labels (any non-range item is kept literally)
+#   # several groups multiply in cartesian fashion:
+#   #   server-{a3,a4}-{1..2}.example.org
+#   #     -> server-a3-1.example.org, server-a3-2.example.org,
+#   #        server-a4-1.example.org, server-a4-2.example.org
+#   # leading zeros are preserved: {01..03} -> 01, 02, 03
+#   # a name: applies to every expanded machine.
+#   #
+#   # Bad patterns fail at startup: unmatched/nested braces, ranges with
+#   # non-integer endpoints or extra dots (e.g. {1..5..10}), and descending
+#   # ranges. A single pattern may expand to at most 10000 machines.
+#   - name: Server room
+#     machines:
+#       - host: server-{a3,a4}-{1..10}.example.org
+#         ssh:
+#           interval: 1m
 
 # ---------- machines without a group (shown under "Machines") ----------
 # machines:
