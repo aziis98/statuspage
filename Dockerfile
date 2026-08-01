@@ -24,7 +24,8 @@ RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=backend /out/statuspage /app/statuspage
 COPY --from=frontend /ui/dist /app/dist
+ENV CONFIG=/app/config.local.yaml
 VOLUME /app/data.volume
 EXPOSE 5000
 ENTRYPOINT ["/app/statuspage"]
-CMD ["-c", "/app/config.local.yaml", "--addr", ":5000"]
+CMD ["--addr", ":5000"]

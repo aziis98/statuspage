@@ -9,8 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/pflag"
 )
+
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
 
 func buildFrontend() error {
 	cmd := "npm"
@@ -43,11 +51,13 @@ func spaHandler() http.HandlerFunc {
 }
 
 func main() {
+	_ = godotenv.Load()
+
 	dev := pflag.Bool("dev", false, "run `npm run build` before serving dist/")
 	devServer := pflag.Bool("dev-server", false, "frontend served by the vite dev server, do not serve dist/")
-	addr := pflag.String("addr", ":5000", "listen address")
-	configPath := pflag.StringP("config", "c", "config.local.yaml", "yaml config file")
-	dbPath := pflag.String("db", "data.volume/history.db", "sqlite history database file")
+	addr := pflag.String("addr", envOr("ADDR", ":5000"), "listen address")
+	configPath := pflag.StringP("config", "c", envOr("CONFIG", "config.local.yaml"), "yaml config file")
+	dbPath := pflag.String("db", envOr("DB", "data.volume/history.db"), "sqlite history database file")
 	pflag.Parse()
 
 	if dir := filepath.Dir(*dbPath); dir != "." {

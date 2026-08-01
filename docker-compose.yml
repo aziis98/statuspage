@@ -7,6 +7,9 @@ services:
     volumes:
       - ./data.volume:/app/data.volume
       - ./config.local.yaml:/app/config.local.yaml:ro
+    environment:
+      - CONFIG=/app/config.local.yaml
+      - ADDR=:5000
     cap_add:
       - NET_RAW
     restart: unless-stopped
