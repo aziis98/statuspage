@@ -1,0 +1,84 @@
+# statuspage example configuration
+#
+# Everything in this file is commented out on purpose. Uncomment (and adjust)
+# the bits you need. See the README for the full reference.
+#
+# Save a copy as config.local.yaml and start the server with:
+#
+#     ./bin/statuspage -c config.local.yaml
+#
+# or point Docker at it (see docker-compose.yml).
+
+# title: "My machines"            # shown in the header and browser tab
+#                                  # default: "Status Page"
+
+# interactive: true                # allow on-demand probes via the refresh
+#                                  # button on each machine card
+#                                  # default: false
+
+# shared_metric_window: false      # align all metric plot x-axes to the same
+#                                  # window (the last ~24h) so shapes can be
+#                                  # compared directly
+#                                  # default: false
+
+# ---------- global ping defaults ----------
+# ping:
+#   interval: 10s                  # how often to probe        default: 10s
+#   timeout: 2s                    # per-probe timeout         default: 2s
+#   tcp_port: 22                   # port to TCP-connect to    default: 22
+#                                  # (only IPv4 hosts are probed)
+
+# ---------- global ssh defaults ----------
+# ssh:
+#   interval: 10m                  # how often to run the script   default: 10m
+#   user: root                     # ssh user                      default: root
+#   port: 22                       # ssh port                      default: 22
+#   key: |                         # PEM private key (the only supported auth)
+#     -----BEGIN OPENSSH PRIVATE KEY-----
+#     ...
+#     -----END OPENSSH PRIVATE KEY-----
+#   script: |                      # shell script to run over ssh
+#     echo "tmp:on:$(df -h /tmp 2>/dev/null | awk 'NR==2 {print $2}')"
+#     echo "cpu_pct:metric:$(top -bn1 2>/dev/null | awk '/%Cpu/ {printf "%.1f", 100-$8}')"
+#     echo "---"
+#     echo "kernel: $(uname -sr)"
+#
+#   Script format, one line per item:
+#     name:status:info    -> a check chip (status: on / off / down / anything)
+#     name:metric:value   -> a numeric metric, accumulated into the history db
+#     ---                 -> everything after the first such line is shown raw
+#
+#   If key or script is empty, the ssh check is skipped for that machine.
+
+# ---------- suggested y-axis bounds for metric plots ----------
+# metrics:
+#   cpu_pct:
+#     min: 0                       # soft bounds: the plot only extends the
+#     max: 100                     # axis if the data goes outside
+#   ram_pct:
+#     min: 0
+#     max: 100
+#   disk_free:
+#     min: 0
+
+# ---------- machines grouped by section ----------
+# groups:
+#   - name: Aula 3
+#     machines:
+#       - host: a3-dott1.example.net
+#       - host: a3-dott2.example.net
+#         name: dottorandi 2      # optional display name (defaults to host)
+#         ping:                    # per-machine overrides, inherit the rest
+#           interval: 30s
+#           tcp_port: 22
+#         ssh:
+#           interval: 1m
+#           user: root
+
+# ---------- machines without a group (shown under "Machines") ----------
+# machines:
+#   - host: router.example.net
+#     name: router
+#     ping:
+#       interval: 5s
+#       tcp_port: 80

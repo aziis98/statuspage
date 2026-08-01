@@ -1,0 +1,12 @@
+services:
+  statuspage:
+    build: .
+    container_name: statuspage
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data.volume:/app/data.volume
+      - ./config.local.yaml:/app/config.local.yaml:ro
+    cap_add:
+      - NET_RAW
+    restart: unless-stopped
