@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/pflag"
@@ -32,22 +31,8 @@ func buildFrontend() error {
 	return c.Run()
 }
 
-func spaHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") {
-			http.NotFound(w, r)
-			return
-		}
-		rel := filepath.Clean(strings.TrimPrefix(r.URL.Path, "/"))
-		if rel != "." && rel != "" {
-			p := filepath.Join("dist", rel)
-			if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-				http.ServeFile(w, r, p)
-				return
-			}
-		}
-		http.ServeFile(w, r, filepath.Join("dist", "index.html"))
-	}
+func spaHandler() http.Handler {
+	return http.FileServer(http.Dir("dist"))
 }
 
 func main() {
@@ -78,7 +63,7 @@ func main() {
 		mux.HandleFunc("GET /api/metrics/{machine}", mm.metricsHandler)
 		mux.HandleFunc("POST /api/refresh/{machine}", mm.refreshHandler)
 		if !*devServer {
-			mux.HandleFunc("GET /", spaHandler())
+			mux.Handle("GET /", spaHandler())
 		}
 		log.Printf("listening on %s (mock)", *addr)
 		if err := http.ListenAndServe(*addr, mux); err != nil {
@@ -118,7 +103,7 @@ func main() {
 	mux.HandleFunc("GET /api/metrics/{machine}", mon.metricsHandler)
 	mux.HandleFunc("POST /api/refresh/{machine}", mon.refreshHandler)
 	if !*devServer {
-		mux.HandleFunc("GET /", spaHandler())
+		mux.Handle("GET /", spaHandler())
 	}
 
 	log.Printf("listening on %s", *addr)

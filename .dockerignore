@@ -1,0 +1,7 @@
+.git
+node_modules
+bin
+dist
+data.volume
+*.local*
+assets

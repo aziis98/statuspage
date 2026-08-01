@@ -31,6 +31,9 @@ const checkNA = "na"
 
 const maxIPHistory = 10
 
+// minimum interval between interactive refresh requests for the same machine
+const refreshCooldown = 5 * time.Second
+
 type sshResultState struct {
 	Ok       bool      `json:"ok"`
 	Result   string    `json:"result"`
@@ -125,6 +128,9 @@ type Monitor struct {
 
 	statesMu sync.RWMutex
 	states   map[string]*machineState
+
+	refreshMu   sync.Mutex
+	lastRefresh map[string]time.Time
 }
 
 func NewMonitor(cfg *Config, history *History) *Monitor {
@@ -136,6 +142,7 @@ func NewMonitor(cfg *Config, history *History) *Monitor {
 		ctx:          context.Background(),
 		history:      history,
 		states:       make(map[string]*machineState, len(cfg.Machines)),
+		lastRefresh:  make(map[string]time.Time, len(cfg.Machines)),
 	}
 	for _, mc := range cfg.Machines {
 		m.states[mc.ID] = &machineState{status: statusUnknown, icmp: checkNA, tcp: checkNA}
@@ -765,6 +772,17 @@ func (m *Monitor) refreshHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "machine not found", http.StatusNotFound)
 		return
 	}
+
+	m.refreshMu.Lock()
+	if now := time.Now(); now.Sub(m.lastRefresh[id]) < refreshCooldown {
+		m.refreshMu.Unlock()
+		http.Error(w, "refresh cooldown active", http.StatusTooManyRequests)
+		return
+	} else {
+		m.lastRefresh[id] = now
+	}
+	m.refreshMu.Unlock()
+
 	log.Printf("interactive refresh scheduled for %s (%s)", mc.Name, mc.Host)
 	m.Refresh(mc)
 	w.WriteHeader(http.StatusAccepted)

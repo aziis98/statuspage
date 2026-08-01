@@ -42,7 +42,8 @@ statuspage
 
 ## Requirements
 
-- Go (recent, 1.22+ for `http.ServeMux` patterns).
+- Go 1.26+ (see the `go` directive in `go.mod`; the backend uses `http.ServeMux`
+  method patterns, added in 1.22).
 - A C compiler for `mattn/go-sqlite3` (the `CGO_ENABLED=1` build).
 - `bun` (or `npm`) for the frontend build.
 
@@ -64,8 +65,12 @@ Then open `http://localhost:5000`.
 
 ### Docker
 
+Clone the repo and set up your config inside it:
+
 ```sh
-cp config.local.yaml config.local.yaml   # your config goes here
+git clone https://git.phc.dm.unipi.it/aziis98/statuspage
+cd statuspage
+cp example.config.yaml config.local.yaml   # your config goes here
 docker compose up -d --build
 ```
 
