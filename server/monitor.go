@@ -658,15 +658,8 @@ func (m *Monitor) StatusPayload() statusPayload {
 		grouped[group] = append(grouped[group], ms)
 	}
 
-	for _, g := range m.cfg.Groups {
-		for _, mc := range g.Machines {
-			appendStatus(resolveMachine(mc, g.Name, m.cfg), g.Name)
-		}
-	}
 	for _, mc := range m.cfg.Machines {
-		if mc.Group == "" {
-			appendStatus(mc, "")
-		}
+		appendStatus(mc, mc.Group)
 	}
 
 	for _, name := range order {

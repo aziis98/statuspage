@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -115,5 +117,51 @@ func TestExpandHostPattern(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("%q:\n got %v\nwant %v", tt.pattern, got, tt.want)
 		}
+	}
+}
+
+func TestStatusPayloadExpandsGlobs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	cfg := `
+groups:
+  - name: Aula 3
+    machines:
+      - host: a3-dott{1..3}.cs.dm.unipi.it
+machines:
+  - host: router.example.net
+`
+	if err := os.WriteFile(path, []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	conf, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mon := NewMonitor(conf, nil)
+	p := mon.StatusPayload()
+
+	if len(p.Groups) != 1 {
+		t.Fatalf("want 1 group, got %d", len(p.Groups))
+	}
+	g := p.Groups[0]
+	want := []string{
+		"a3-dott1.cs.dm.unipi.it",
+		"a3-dott2.cs.dm.unipi.it",
+		"a3-dott3.cs.dm.unipi.it",
+	}
+	if len(g.Machines) != len(want) {
+		t.Fatalf("group machines: want %d, got %d", len(want), len(g.Machines))
+	}
+	for i, m := range g.Machines {
+		if m.Host != want[i] {
+			t.Errorf("machine %d: host %q, want %q", i, m.Host, want[i])
+		}
+	}
+	if len(p.Machines) != 1 {
+		t.Fatalf("top-level machines: want 1, got %d", len(p.Machines))
+	}
+	if p.Machines[0].Host != "router.example.net" {
+		t.Errorf("top-level host: %q", p.Machines[0].Host)
 	}
 }
