@@ -7,6 +7,8 @@ numeric metrics, and keeps recent history in SQLite.
 The backend is a single Go binary, the frontend is a Preact + Vite page, and
 everything is configured with one YAML file.
 
+![statuspage](assets/screenshots/status.png)
+
 ## Features
 
 - ICMP + TCP probes per machine, combined into a single status (`up`,
@@ -29,6 +31,7 @@ statuspage
 │   ├── main.go      entrypoint, flags, routes
 │   ├── config.go    yaml config loading + defaults
 │   ├── monitor.go   probes, ssh runs, status/history/metrics handlers
+│   ├── mock.go      deterministic mock data for --mock / screenshots
 │   └── history.go   sqlite history + metrics storage and downsampling
 ├── go.mod           module definition (statuspage)
 ├── src/             the frontend (Preact + TS + CSS)
@@ -71,9 +74,24 @@ database location) and `./config.local.yaml` read-only at
 `/app/config.local.yaml`. `NET_RAW` is added so ICMP probes work; without it
 the app falls back to TCP-only.
 
-### Development mode
+## Development
 
-The backend can skip serving the built frontend while you work on it with Vite:
+Three flags change how the app runs while developing — they control what the
+backend serves and whether it talks to real machines.
+
+### `--dev`
+
+Builds the frontend (`bun run build`) before serving `dist/`, so one command
+gets you a running page without a separate build step:
+
+```sh
+./bin/statuspage -c config.local.yaml --dev
+```
+
+### `--dev-server`
+
+Skips serving `dist/` entirely and lets the Vite dev server handle the
+frontend, with hot reloading as you edit `src/`:
 
 ```sh
 ./bin/statuspage -c config.local.yaml --dev-server   # terminal 1
@@ -82,6 +100,31 @@ bun dev                                            # terminal 2, http://localhos
 
 `vite.config.ts` proxies `/api` to `http://localhost:5000`, so the backend must
 be running too.
+
+### `--mock`
+
+Serves fully generated data (six `server-N` machines with noisy metric series)
+instead of probing real machines — no config, SSH keys, or network access
+needed. It's primarily used by `scripts/generate-screenshot` to produce the
+README image, but is handy for previewing the UI quickly:
+
+```sh
+./bin/statuspage --mock --dev
+```
+
+### Screenshot
+
+`scripts/generate-screenshot` builds the frontend and server, starts the app in
+mock mode, captures the top of the page with headless Chromium, and frames it
+with a transparent background, border, and shadow. It needs `chromium` and
+`python3-PIL` on PATH:
+
+```sh
+./scripts/generate-screenshot
+```
+
+The PNG is written to `assets/screenshots/status.png` — the image at the top of
+this README.
 
 ### Flags
 
@@ -92,6 +135,7 @@ be running too.
 | `--db`              | `data.volume/history.db`  | sqlite database file                  |
 | `--dev`             | `false`        | run `bun run build` before serving `dist/`         |
 | `--dev-server`      | `false`        | don't serve `dist/` (Vite dev server handles it)   |
+| `--mock`            | `false`        | serve generated mock data (no real probes)         |
 
 ## Configuration
 

@@ -55,20 +55,41 @@ func main() {
 
 	dev := pflag.Bool("dev", false, "run `npm run build` before serving dist/")
 	devServer := pflag.Bool("dev-server", false, "frontend served by the vite dev server, do not serve dist/")
+	mock := pflag.Bool("mock", false, "serve generated mock data instead of probing real machines")
 	addr := pflag.String("addr", envOr("ADDR", ":5000"), "listen address")
 	configPath := pflag.StringP("config", "c", envOr("CONFIG", "config.local.yaml"), "yaml config file")
 	dbPath := pflag.String("db", envOr("DB", "data.volume/history.db"), "sqlite history database file")
 	pflag.Parse()
 
-	if dir := filepath.Dir(*dbPath); dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			log.Fatalf("creating db dir: %v", err)
-		}
-	}
-
 	if *dev {
 		if err := buildFrontend(); err != nil {
 			log.Fatalf("build failed: %v", err)
+		}
+	}
+
+	mux := http.NewServeMux()
+
+	if *mock {
+		log.Printf("mock mode: serving generated data (no real probes)")
+		mm := NewMockMonitor()
+		mux.HandleFunc("GET /api/status", mm.statusHandler)
+		mux.HandleFunc("GET /api/history/{machine}", mm.historyHandler)
+		mux.HandleFunc("GET /api/metrics/aggregate", mm.metricsAggregateHandler)
+		mux.HandleFunc("GET /api/metrics/{machine}", mm.metricsHandler)
+		mux.HandleFunc("POST /api/refresh/{machine}", mm.refreshHandler)
+		if !*devServer {
+			mux.HandleFunc("GET /", spaHandler())
+		}
+		log.Printf("listening on %s (mock)", *addr)
+		if err := http.ListenAndServe(*addr, mux); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if dir := filepath.Dir(*dbPath); dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			log.Fatalf("creating db dir: %v", err)
 		}
 	}
 
@@ -91,7 +112,6 @@ func main() {
 	mon := NewMonitor(cfg, history)
 	mon.Start(ctx)
 
-	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/status", mon.statusHandler)
 	mux.HandleFunc("GET /api/history/{machine}", mon.historyHandler)
 	mux.HandleFunc("GET /api/metrics/aggregate", mon.metricsAggregateHandler)

@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+OUT="assets/screenshots/status.png"
+PORT="${PORT:-17645}"
+URL="http://127.0.0.1:$PORT"
+
+CHROMIUM="$(command -v chromium || command -v chromium-browser || true)"
+if [ -z "$CHROMIUM" ]; then
+  echo "error: chromium not found (install chromium or chromium-browser)" >&2
+  exit 1
+fi
+
+echo "building frontend..."
+bun run build
+
+echo "building server..."
+CGO_ENABLED=1 go build -o bin/statuspage ./server
+
+cleanup() {
+  if [ -n "${SERVER_PID:-}" ]; then
+    kill "$SERVER_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+echo "starting mock server on $URL"
+./bin/statuspage --mock --addr "127.0.0.1:$PORT" &
+SERVER_PID=$!
+
+for _ in $(seq 1 50); do
+  if curl -sf "$URL/api/status" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.1
+done
+if ! curl -sf "$URL/api/status" >/dev/null 2>&1; then
+  echo "error: mock server did not come up" >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "$OUT")"
+
+"$CHROMIUM" --headless=new --disable-gpu --hide-scrollbars \
+  --window-size=1280,720 \
+  --force-device-scale-factor=2 \
+  --screenshot="$OUT" \
+  --virtual-time-budget=8000 \
+  "$URL/" 2>/dev/null
+
+# frame the capture: rounded corners, 2px border, hard offset shadow (2x for device scale)
+if ! python3 -c 'import PIL' 2>/dev/null; then
+  echo "note: python3-PIL not found, skipping frame" >&2
+  echo "screenshot written to $OUT"
+  exit 0
+fi
+
+python3 - "$OUT" <<'PY'
+import sys
+from PIL import Image, ImageDraw
+
+path = sys.argv[1]
+img = Image.open(path).convert("RGB")
+W, H = img.size
+r = 16          # 0.5rem radius
+b = 4           # 2px border
+s = 12          # 0.35rem shadow offset
+m = 24          # margin around the frame
+BORDER = (17, 17, 17)
+SHADOW = (136, 136, 136)
+
+mask = Image.new("L", (W, H), 0)
+ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 1, H - 1], radius=r, fill=255)
+
+img_r = img.copy()
+img_r.putalpha(mask)
+
+bw, bh = W + 2 * b, H + 2 * b
+canvas = Image.new("RGBA", (bw + 2 * m + s, bh + 2 * m + s), (0, 0, 0, 0))
+d = ImageDraw.Draw(canvas)
+d.rounded_rectangle(
+    [m + s, m + s, m + s + bw - 1, m + s + bh - 1], radius=r, fill=SHADOW + (255,))
+d.rounded_rectangle(
+    [m, m, m + bw - 1, m + bh - 1], radius=r, fill=BORDER + (255,))
+canvas.alpha_composite(img_r, (m + b, m + b))
+
+canvas.save(path)
+print(f"framed {path}")
+PY
+
+echo "screenshot written to $OUT"
