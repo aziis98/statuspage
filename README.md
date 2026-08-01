@@ -302,6 +302,90 @@ These are soft bounds: the plot scales to fit the data if a value goes outside
 the range, and the current value is highlighted (with a wavy underline) when
 out of range.
 
+#### Copy-paste: Linux examples
+
+Small, ready-to-paste snippets for a Linux box. Wrap commands that may not
+exist on every machine (like `sensors` or `nvidia-smi`) in `2>/dev/null`; a
+line that produces no output is skipped.
+
+Status chips — `name:status:info`:
+
+```yaml
+ssh:
+  script: |
+    echo "hostname:on:$(hostname)"
+    echo "kernel:on:$(uname -sr)"
+    echo "vulkan:on:$(vulkaninfo --summary 2>/dev/null | sed -n '/deviceName/p' | head -1 | cut -d: -f2-)"
+    echo "docker:$(systemctl is-active docker 2>/dev/null | sed 's/active/on/; s/inactive/off/; s/failed/down/'):docker daemon"
+```
+
+CPU & memory metrics:
+
+```yaml
+ssh:
+  script: |
+    echo "cpu_pct:metric:$(top -bn1 2>/dev/null | awk '/%Cpu/ {printf "%.1f", 100-$8}')"
+    echo "load1:metric:$(cut -d' ' -f1 /proc/loadavg)"
+    echo "ram_pct:metric:$(free -m 2>/dev/null | awk '/^Mem:/ {printf "%.1f", $3/$2*100}')"
+    echo "ram_used:metric:$(free -m 2>/dev/null | awk '/^Mem:/ {print $3}')MB"
+```
+
+Disk usage:
+
+```yaml
+ssh:
+  script: |
+    echo "disk_root:metric:$(df -h / 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%')"
+    echo "disk_root_free:metric:$(df -h / 2>/dev/null | awk 'NR==2 {print $4}' | tr -d 'G')"
+```
+
+Temperatures & GPU:
+
+```yaml
+ssh:
+  script: |
+    echo "cpu_temp:metric:$(sensors 2>/dev/null | awk '/Package id 0:/ {print $4; exit}' | tr -d '+°C')"
+    echo "gpu_temp:metric:$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null | tr -d ' ')"
+    echo "gpu_util:metric:$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader 2>/dev/null | tr -d ' %')"
+```
+
+Free-form output (everything after `---` is shown raw in the machine modal):
+
+```yaml
+ssh:
+  script: |
+    echo "---"
+    echo "uptime: $(uptime -p)"
+    echo "load: $(cat /proc/loadavg)"
+    echo "mem: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
+    echo "top: $(ps -eo %cpu,comm --sort=-%cpu | head -4 | tr '\n' ';')"
+```
+
+Suggested bounds for the metrics above:
+
+```yaml
+metrics:
+  cpu_pct:    { min: 0, max: 100 }
+  ram_pct:    { min: 0, max: 100 }
+  disk_root:  { min: 0, max: 100 }
+  gpu_util:   { min: 0, max: 100 }
+  gpu_temp:   { min: 0, max: 105 }
+```
+
+A per-machine `script:` overrides the global one, e.g. for the box that
+actually has the NVIDIA GPU:
+
+```yaml
+groups:
+  - name: "Lab"
+    machines:
+      - host: a1.example.net
+      - host: gpu.example.net
+        ssh:
+          script: |
+            echo "gpu_temp:metric:$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader 2>/dev/null | tr -d ' ')"
+```
+
 ### `groups`
 
 ```yaml
