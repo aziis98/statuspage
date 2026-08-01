@@ -11,5 +11,6 @@ services:
       - CONFIG=/app/config.local.yaml
       - ADDR=:5000
     cap_add:
+      # required for the ICMP ping probe (raw socket); Docker drops NET_RAW by default
       - NET_RAW
     restart: unless-stopped

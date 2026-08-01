@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 FROM oven/bun:1-alpine AS frontend
 WORKDIR /ui
 COPY package.json bun.lock ./
