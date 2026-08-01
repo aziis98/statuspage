@@ -7,7 +7,7 @@ numeric metrics, and keeps recent history in SQLite.
 The backend is a single Go binary, the frontend is a Preact + Vite page, and
 everything is configured with one YAML file.
 
-![statuspage](assets/screenshots/status.png)
+![statuspage](assets/screenshots/status-collage.png)
 
 ## Features
 
@@ -120,16 +120,26 @@ README image, but is handy for previewing the UI quickly:
 ### Screenshot
 
 `scripts/generate-screenshot` builds the frontend and server, starts the app in
-mock mode, captures the top of the page with headless Chromium, and frames it
-with a transparent background, border, and shadow. It needs `chromium` and
-`python3-PIL` on PATH:
+mock mode, captures the top of the page with headless Chromium in both light and
+dark, and frames each with a transparent background, border, and shadow. It
+needs `chromium` and `python3-PIL` on PATH:
 
 ```sh
 ./scripts/generate-screenshot
 ```
 
-The PNG is written to `assets/screenshots/status.png` — the image at the top of
-this README.
+This writes three PNGs to `assets/screenshots/`:
+
+| file                        | contents                                          |
+| --------------------------- | ------------------------------------------------- |
+| `status.png`                | light capture                                     |
+| `status-dark.png`           | dark capture                                      |
+| `status-collage.png`        | dark behind, offset top-left, light on top        |
+
+Runs are incremental: a capture is skipped when no frontend/server source is
+newer than the existing PNG, and the collage is rebuilt only when the mtime of a
+light/dark variant is newer than the collage. `status-collage.png` is the image
+at the top of this README.
 
 ### Flags
 

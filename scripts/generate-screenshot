@@ -3,7 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-OUT="assets/screenshots/status.png"
+ASSETS="assets/screenshots"
+LIGHT="$ASSETS/status.png"
+DARK="$ASSETS/status-dark.png"
+COLLAGE="$ASSETS/status-collage.png"
 PORT="${PORT:-17645}"
 URL="http://127.0.0.1:$PORT"
 
@@ -11,6 +14,13 @@ CHROMIUM="$(command -v chromium || command -v chromium-browser || true)"
 if [ -z "$CHROMIUM" ]; then
   echo "error: chromium not found (install chromium or chromium-browser)" >&2
   exit 1
+fi
+
+if python3 -c 'import PIL' 2>/dev/null; then
+  HAVE_PIL=1
+else
+  HAVE_PIL=0
+  echo "note: python3-PIL not found, skipping framing and collage" >&2
 fi
 
 echo "building frontend..."
@@ -41,23 +51,29 @@ if ! curl -sf "$URL/api/status" >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$(dirname "$OUT")"
+mkdir -p "$ASSETS"
 
-"$CHROMIUM" --headless=new --disable-gpu --hide-scrollbars \
-  --window-size=1280,720 \
-  --force-device-scale-factor=2 \
-  --screenshot="$OUT" \
-  --virtual-time-budget=8000 \
-  "$URL/" 2>/dev/null
+# $1=theme  $2=out  $3=shadow  $4=border
+capture() {
+  local theme="$1" out="$2" shadow="$3" border="$4"
 
-# frame the capture: rounded corners, 2px border, hard offset shadow (2x for device scale)
-if ! python3 -c 'import PIL' 2>/dev/null; then
-  echo "note: python3-PIL not found, skipping frame" >&2
-  echo "screenshot written to $OUT"
-  exit 0
-fi
+  if [ -f "$out" ] &&
+    ! find src index.html public server go.mod go.sum \
+      -type f -newer "$out" -print -quit 2>/dev/null | grep -q .; then
+    echo "up to date, skipping ($out)"
+    return
+  fi
 
-python3 - "$OUT" <<'PY'
+  "$CHROMIUM" --headless=new --disable-gpu --hide-scrollbars \
+    --window-size=1280,720 \
+    --force-device-scale-factor=2 \
+    --screenshot="$out" \
+    --virtual-time-budget=8000 \
+    "$URL/?theme=$theme" 2>/dev/null
+
+  # frame the capture: rounded corners, 2px border, hard offset shadow (2x for device scale)
+  if [ "$HAVE_PIL" = 1 ]; then
+    python3 - "$out" "$shadow" "$border" <<'PY'
 import sys
 from PIL import Image, ImageDraw
 
@@ -68,8 +84,8 @@ r = 16          # 0.5rem radius
 b = 4           # 2px border
 s = 12          # 0.35rem shadow offset
 m = 24          # margin around the frame
-BORDER = (17, 17, 17)
-SHADOW = (136, 136, 136)
+BORDER = tuple(int(c) for c in sys.argv[3].split(","))
+SHADOW = tuple(int(c) for c in sys.argv[2].split(","))
 
 mask = Image.new("L", (W, H), 0)
 ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 1, H - 1], radius=r, fill=255)
@@ -89,5 +105,32 @@ canvas.alpha_composite(img_r, (m + b, m + b))
 canvas.save(path)
 print(f"framed {path}")
 PY
+  fi
+  echo "wrote $out"
+}
 
-echo "screenshot written to $OUT"
+capture light "$LIGHT" "136,136,136" "17,17,17"
+capture dark "$DARK" "0,0,0" "58,64,58"
+
+# collage: rebuild only when a variant is newer than the existing collage
+if [ "$HAVE_PIL" = 1 ]; then
+  if [ -f "$COLLAGE" ] && [ "$COLLAGE" -nt "$LIGHT" ] && [ "$COLLAGE" -nt "$DARK" ]; then
+    echo "collage up to date, skipping ($COLLAGE)"
+  else
+    python3 - "$LIGHT" "$DARK" "$COLLAGE" <<'PY'
+import sys
+from PIL import Image
+
+light = Image.open(sys.argv[1]).convert("RGBA")
+dark = Image.open(sys.argv[2]).convert("RGBA")
+W, H = light.size
+ox, oy = 480, 160
+canvas = Image.new("RGBA", (W + ox, H + oy), (242, 242, 242, 255))
+canvas.alpha_composite(dark, (0, 0))
+canvas.alpha_composite(light, (ox, oy))
+canvas.thumbnail((1920, 1080), Image.LANCZOS)
+canvas.save(sys.argv[3])
+print(f"wrote {sys.argv[3]}")
+PY
+  fi
+fi
