@@ -85,7 +85,10 @@ b = 4           # 2px border
 s = 12          # 0.35rem shadow offset
 m = 24          # margin around the frame
 BORDER = tuple(int(c) for c in sys.argv[3].split(","))
-SHADOW = tuple(int(c) for c in sys.argv[2].split(","))
+shadow_parts = [int(c) for c in sys.argv[2].split(",")]
+if len(shadow_parts) == 3:
+    shadow_parts.append(255)
+SHADOW = tuple(shadow_parts)
 
 mask = Image.new("L", (W, H), 0)
 ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 1, H - 1], radius=r, fill=255)
@@ -97,7 +100,7 @@ bw, bh = W + 2 * b, H + 2 * b
 canvas = Image.new("RGBA", (bw + 2 * m + s, bh + 2 * m + s), (0, 0, 0, 0))
 d = ImageDraw.Draw(canvas)
 d.rounded_rectangle(
-    [m + s, m + s, m + s + bw - 1, m + s + bh - 1], radius=r, fill=SHADOW + (255,))
+    [m + s, m + s, m + s + bw - 1, m + s + bh - 1], radius=r, fill=SHADOW)
 d.rounded_rectangle(
     [m, m, m + bw - 1, m + bh - 1], radius=r, fill=BORDER + (255,))
 canvas.alpha_composite(img_r, (m + b, m + b))
@@ -109,8 +112,8 @@ PY
   echo "wrote $out"
 }
 
-capture light "$LIGHT" "136,136,136" "17,17,17"
-capture dark "$DARK" "0,0,0" "58,64,58"
+capture light "$LIGHT" "0,0,0,136" "17,17,17"
+capture dark "$DARK" "0,0,0,136" "58,64,58"
 
 # collage: rebuild only when a variant is newer than the existing collage
 if [ "$HAVE_PIL" = 1 ]; then
@@ -125,7 +128,7 @@ light = Image.open(sys.argv[1]).convert("RGBA")
 dark = Image.open(sys.argv[2]).convert("RGBA")
 W, H = light.size
 ox, oy = 480, 160
-canvas = Image.new("RGBA", (W + ox, H + oy), (242, 242, 242, 255))
+canvas = Image.new("RGBA", (W + ox, H + oy), (0, 0, 0, 0))
 canvas.alpha_composite(dark, (0, 0))
 canvas.alpha_composite(light, (ox, oy))
 canvas.thumbnail((1920, 1080), Image.LANCZOS)
