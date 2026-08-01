@@ -68,14 +68,19 @@ const THEME_ICONS: Record<Theme, string> = {
 const STORAGE_KEY = 'statuspage-theme'
 
 function applyTheme(theme: Theme) {
-  const link = document.getElementById('theme-dark') as HTMLLinkElement | null
-  if (!link) return
-  link.media =
-    theme === 'dark'
-      ? 'all'
-      : theme === 'light'
-        ? 'not all'
-        : '(prefers-color-scheme: dark)'
+  const light = document.getElementById('theme-light') as HTMLLinkElement | null
+  const dark = document.getElementById('theme-dark') as HTMLLinkElement | null
+  if (!light || !dark) return
+  if (theme === 'dark') {
+    light.media = 'not all'
+    dark.media = 'all'
+  } else if (theme === 'light') {
+    light.media = 'all'
+    dark.media = 'not all'
+  } else {
+    light.media = '(prefers-color-scheme: light)'
+    dark.media = '(prefers-color-scheme: dark)'
+  }
 }
 
 function readTheme(): Theme {

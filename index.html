@@ -5,11 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Status Page</title>
     <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon-dark.svg"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      id="theme-light"
+      rel="stylesheet"
+      media="(prefers-color-scheme: light)"
+      href="./src/light.css"
+    />
+    <link
       id="theme-dark"
       rel="stylesheet"
       media="(prefers-color-scheme: dark)"
-      href="/dark.css"
+      href="./src/dark.css"
     />
+    <link rel="stylesheet" href="./src/styles.css" />
     <script>
       (function () {
         try {
@@ -18,10 +37,16 @@
             localStorage.setItem('statuspage-theme', q)
           }
           var t = localStorage.getItem('statuspage-theme')
-          var link = document.getElementById('theme-dark')
-          if (!link) return
-          if (t === 'dark') link.media = 'all'
-          else if (t === 'light') link.media = 'not all'
+          var light = document.getElementById('theme-light')
+          var dark = document.getElementById('theme-dark')
+          if (!light || !dark) return
+          if (t === 'dark') {
+            light.media = 'not all'
+            dark.media = 'all'
+          } else if (t === 'light') {
+            light.media = 'all'
+            dark.media = 'not all'
+          }
         } catch (e) {}
       })()
     </script>
