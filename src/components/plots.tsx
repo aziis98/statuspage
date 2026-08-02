@@ -191,7 +191,7 @@ export function AggregatePlot({
   const lineCount = Math.max(1, paths.length)
   // gentler 1/sqrt(n) falloff: isolated lines stay visible while dense clusters
   // still accumulate to a solid mass
-  const opacity = 1 / Math.sqrt(lineCount)
+  const opacity = Math.max(0.25, 1 / Math.sqrt(lineCount))
 
   const [hover, setHover] = useState<{
     sample: MetricEntry
@@ -267,7 +267,7 @@ export function AggregatePlot({
               fill="none"
               stroke={color}
               stroke-opacity={opacity}
-              stroke-width="1.5"
+              stroke-width="1"
               stroke-linejoin="round"
               stroke-linecap="round"
             />
