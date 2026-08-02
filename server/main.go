@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/spf13/pflag"
@@ -20,16 +21,9 @@ func envOr(key, def string) string {
 }
 
 func printConfigSummary(path string, cfg *Config) {
-	byGroup := map[string]int{}
-	for _, m := range cfg.Machines {
-		byGroup[m.Group]++
-	}
 	log.Printf("config %s ok: %d machines", path, len(cfg.Machines))
-	for _, g := range cfg.Groups {
-		log.Printf("  %s: %d", g.Name, byGroup[g.Name])
-	}
-	if n := byGroup[""]; n > 0 {
-		log.Printf("  (top-level): %d", n)
+	for _, line := range machineSummary(cfg) {
+		log.Printf("  %s", line)
 	}
 }
 
@@ -43,10 +37,6 @@ func buildFrontend() error {
 	c.Stderr = os.Stderr
 	log.Printf("running %s run build", cmd)
 	return c.Run()
-}
-
-func spaHandler() http.Handler {
-	return http.FileServer(http.Dir("dist"))
 }
 
 func main() {
@@ -76,6 +66,14 @@ func main() {
 		}
 	}
 
+	cfg, err := LoadConfig(*configPath)
+	if err != nil {
+		log.Fatalf("loading config: %v", err)
+	}
+	log.Printf("loaded %d machines from %s", len(cfg.Machines), *configPath)
+	title := cfg.Title
+	desc := strings.Join(machineSummary(cfg), ", ")
+
 	mux := http.NewServeMux()
 
 	if *mock {
@@ -87,7 +85,7 @@ func main() {
 		mux.HandleFunc("GET /api/metrics/{machine}", mm.metricsHandler)
 		mux.HandleFunc("POST /api/refresh/{machine}", mm.refreshHandler)
 		if !*devServer {
-			mux.Handle("GET /", spaHandler())
+			mux.Handle("GET /", indexHandler("dist", title, desc))
 		}
 		log.Printf("listening on %s (mock)", *addr)
 		if err := http.ListenAndServe(*addr, mux); err != nil {
@@ -101,12 +99,6 @@ func main() {
 			log.Fatalf("creating db dir: %v", err)
 		}
 	}
-
-	cfg, err := LoadConfig(*configPath)
-	if err != nil {
-		log.Fatalf("loading config: %v", err)
-	}
-	log.Printf("loaded %d machines from %s", len(cfg.Machines), *configPath)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -127,7 +119,7 @@ func main() {
 	mux.HandleFunc("GET /api/metrics/{machine}", mon.metricsHandler)
 	mux.HandleFunc("POST /api/refresh/{machine}", mon.refreshHandler)
 	if !*devServer {
-		mux.Handle("GET /", spaHandler())
+		mux.Handle("GET /", indexHandler("dist", title, desc))
 	}
 
 	log.Printf("listening on %s", *addr)

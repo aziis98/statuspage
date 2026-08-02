@@ -57,11 +57,10 @@ export function StatusModal({
     setMetricEntries(null)
     const nowS = Math.floor(Date.now() / 1000)
     const min = nowS - 86400
-    const shared = sharedMetricWindow ? '&shared=1' : ''
     Promise.all(
       metricNames.map((name) =>
         fetch(
-          `/api/metrics/${encodeURIComponent(m.id)}?name=${encodeURIComponent(name)}&min=${min}&max=${nowS}&max_points=100${shared}`
+          `/api/metrics/${encodeURIComponent(m.id)}?name=${encodeURIComponent(name)}&min=${min}&max=${nowS}`
         ).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       )
     )
@@ -78,7 +77,7 @@ export function StatusModal({
     return () => {
       cancelled = true
     }
-    }, [m.id, metricNames.join(','), sharedMetricWindow])
+    }, [m.id, metricNames.join(',')])
 
   const metricPlots = (() => {
     if (!metricEntries) return null
@@ -247,24 +246,23 @@ export function StatusModal({
           </div>
           {hist && hist.length > 0 && (
             <div class="ticks" ref={ticksRef}>
-              {ticks.map((e, i) => {
-                const step = Math.max(1, Math.round(ticks.length / 4))
-                const mark =
-                  i === 0 ||
-                  i === ticks.length - 1 ||
-                  i % step === 0
-                return (
-                  <span key={i} class="tick-cell">
-                    <span
-                      class={`tick ${e.status}`}
-                      title={`${formatTick(e.ts)} · ${e.status}${e.ip ? ` · ${e.ip}` : ''}`}
-                    />
-                    {mark && (
-                      <span class="tick-mark">{formatTickShort(e.ts)}</span>
-                    )}
-                  </span>
-                )
-              })}
+              {(() => {
+                const last = ticks.length - 1
+                return ticks.map((e, i) => {
+                  const mark = (last - i) % 20 === 0
+                  return (
+                    <span key={i} class="tick-cell">
+                      <span
+                        class={`tick ${e.status}`}
+                        title={`${formatTick(e.ts)} · ${e.status}${e.ip ? ` · ${e.ip}` : ''}`}
+                      />
+                      {mark && (
+                        <span class="tick-mark">{formatTickShort(e.ts)}</span>
+                      )}
+                    </span>
+                  )
+                })
+              })()}
             </div>
           )}
           {hist && hist.length > 0 && (

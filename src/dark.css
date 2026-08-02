@@ -41,7 +41,7 @@
   --border-ink: #3a403a;
   --border: 2px solid var(--border-ink);
   --border-muted: #3a403a;
-  --shadow-color: #000;
+  --shadow-color: #0004;
   --shadow: 0.35rem 0.35rem 0 var(--shadow-color);
   --shadow-lg: 0.55rem 0.55rem 0 var(--shadow-color);
   --overlay: rgba(0, 0, 0, 0.6);

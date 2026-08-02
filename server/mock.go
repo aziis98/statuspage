@@ -136,10 +136,25 @@ func (mm *MockMonitor) sshResult(m mockMachine, now time.Time) *sshResultState {
 	return &sshResultState{Ok: true, Result: sb.String(), ExitCode: nil, LastRun: now}
 }
 
+func mockUptime(m mockMachine) *float64 {
+	switch m.Status {
+	case statusDown:
+		u := 55.0 + float64(mockSeed(m.ID)%20)
+		return &u
+	case statusDegraded:
+		u := 92.0 + float64(mockSeed(m.ID)%7)
+		return &u
+	default:
+		u := 99.0 + float64(mockSeed(m.ID)%10)/10
+		return &u
+	}
+}
+
 func (mm *MockMonitor) machineStatus(m mockMachine, now time.Time) machineStatus {
 	ms := machineStatus{
 		ID: m.ID, Name: m.Name, Host: m.Host, Status: m.Status, LastPing: &now,
 		IP: m.IP, IPs: []string{m.IP},
+		Uptime: mockUptime(m),
 	}
 	switch m.Status {
 	case statusDown:

@@ -77,6 +77,7 @@ type machineStatus struct {
 	ICMP          string          `json:"icmp"`
 	TCP           string          `json:"tcp"`
 	LastPing      *time.Time      `json:"lastPing"`
+	Uptime        *float64        `json:"uptime,omitempty"`
 	SSHConfigured bool            `json:"sshConfigured"`
 	SSH           *sshResultState `json:"ssh"`
 	Metrics       []metricStatus  `json:"metrics"`
@@ -648,6 +649,13 @@ func (m *Monitor) StatusPayload() statusPayload {
 			ms.ICMP = checkNA
 			ms.TCP = checkNA
 		}
+		if m.history != nil {
+			up, down := m.history.Uptime(mc.ID)
+			if up+down > 0 {
+				u := float64(up) / float64(up+down) * 100
+				ms.Uptime = &u
+			}
+		}
 		if group == "" {
 			p.Machines = append(p.Machines, ms)
 			return
@@ -703,16 +711,6 @@ func (m *Monitor) metricsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	maxPoints := 100
-	if v := q.Get("max_points"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			maxPoints = n
-		}
-	} else if v := q.Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			maxPoints = n
-		}
-	}
 	var minTS, maxTS int64
 	if v := q.Get("min"); v != "" {
 		minTS, _ = strconv.ParseInt(v, 10, 64)
@@ -720,7 +718,7 @@ func (m *Monitor) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	if v := q.Get("max"); v != "" {
 		maxTS, _ = strconv.ParseInt(v, 10, 64)
 	}
-	entries, err := m.history.QueryMetrics(machine, q.Get("name"), minTS, maxTS, maxPoints, q.Get("shared") != "")
+	entries, err := m.history.QueryMetrics(machine, q.Get("name"), minTS, maxTS)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

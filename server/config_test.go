@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -163,5 +164,49 @@ machines:
 	}
 	if p.Machines[0].Host != "router.example.net" {
 		t.Errorf("top-level host: %q", p.Machines[0].Host)
+	}
+}
+
+func TestStatusPayloadUptime(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	cfg := `
+machines:
+  - host: a3-dott1.cs.dm.unipi.it
+`
+	if err := os.WriteFile(cfgPath, []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	conf, err := LoadConfig(cfgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dbPath := filepath.Join(dir, "h.db")
+	hist, err := NewHistory(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hist.Close()
+	id := conf.Machines[0].ID
+	for i := 0; i < 10; i++ {
+		hist.Record(id, statusUp, "")
+	}
+	for i := 0; i < 5; i++ {
+		hist.Record(id, statusDown, "")
+	}
+	hist.Record(id, statusDegraded, "")
+
+	mon := NewMonitor(conf, hist)
+	p := mon.StatusPayload()
+	if len(p.Machines) != 1 {
+		t.Fatalf("want 1 machine, got %d", len(p.Machines))
+	}
+	ms := p.Machines[0]
+	if ms.Uptime == nil {
+		t.Fatal("expected uptime")
+	}
+	want := float64(10) / float64(15) * 100
+	if math.Abs(*ms.Uptime-want) > 0.001 {
+		t.Errorf("uptime %v, want %v", *ms.Uptime, want)
 	}
 }

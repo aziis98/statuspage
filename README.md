@@ -32,7 +32,7 @@ statuspage
 │   ├── config.go    yaml config loading + defaults
 │   ├── monitor.go   probes, ssh runs, status/history/metrics handlers
 │   ├── mock.go      deterministic mock data for --mock / screenshots
-│   └── history.go   sqlite history + metrics storage and downsampling
+│   └── history.go   sqlite history + metrics storage
 ├── go.mod           module definition (statuspage)
 ├── src/             the frontend (Preact + TS + CSS)
 ├── example.config.yaml      documented, fully commented-out example config
@@ -203,8 +203,8 @@ Controls how metric plots share their x (time) axis:
 
 - `false` (default): each metric plot scales to its own recorded time span, so
   a brand new metric isn't drowned out by an older one.
-- `true`: all plots are aligned to the same window (the last ~24h) and are
-  downsampled together, so you can compare shapes directly.
+- `true`: all plots are aligned to the same window (the last ~24h), so you can
+  compare shapes directly.
 
 ### `ping`
 
@@ -359,7 +359,7 @@ ssh:
     echo "uptime: $(uptime -p)"
     echo "load: $(cat /proc/loadavg)"
     echo "mem: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
-    echo "top: $(ps -eo %cpu,comm --sort=-%cpu | head -4 | tr '\n' ';')"
+    echo "top: $(ps --no-headers -eo %cpu,comm --sort=-%cpu | head -4 | tr '\n' ';')"
 ```
 
 Suggested bounds for the metrics above:
@@ -455,10 +455,8 @@ groups:
 | ------------ | ------------------------------------------------ |
 | `name`       | restrict to one metric name                      |
 | `min`, `max` | unix seconds window to fetch                     |
-| `max_points` | max returned points (downsampled, default 100)   |
-| `shared`     | align downsampling to the `min`/`max` window     |
 
-The frontend asks for the last ~24h at `max_points=100` per metric.
+The frontend asks for the last ~24h per metric.
 
 ## Storage
 

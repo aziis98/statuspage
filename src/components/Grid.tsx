@@ -51,6 +51,12 @@ export function MachineCard({
         <Chip label="ping" state={m.icmp} />
         <Chip label="tcp" state={m.tcp} />
         {m.sshConfigured && <Chip label="ssh" state={sshState} />}
+        {m.uptime !== undefined && (
+          <Chip
+            label={`${m.uptime.toFixed(1)}%`}
+            state={m.uptime >= 99 ? 'ok' : 'fail'}
+          />
+        )}
       </div>
 
       <div class="popover" onClick={(e) => e.stopPropagation()}>
@@ -63,6 +69,12 @@ export function MachineCard({
             <span class="popover-meta-item">
               <span class="popover-meta-key">last ping</span>
               <span class="popover-meta-val">{formatTime(m.lastPing)}</span>
+            </span>
+            <span class="popover-meta-item">
+              <span class="popover-meta-key">uptime</span>
+              <span class="popover-meta-val">
+                {m.uptime !== undefined ? `${m.uptime.toFixed(1)}%` : '—'}
+              </span>
             </span>
           </div>
           <span class="popover-status">

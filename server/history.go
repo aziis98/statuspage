@@ -108,6 +108,16 @@ func (h *History) RecordMetric(machine, name string, ts int64, value float64, un
 	}
 }
 
+// Uptime counts the number of 'up' and 'down' history ticks for a machine.
+// A machine with no history returns zeroes.
+func (h *History) Uptime(machine string) (up, down int) {
+	h.db.QueryRow(`SELECT
+		COALESCE(SUM(CASE WHEN status = 'up' THEN 1 ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN status = 'down' THEN 1 ELSE 0 END), 0)
+		FROM history WHERE machine = ?`, machine).Scan(&up, &down)
+	return
+}
+
 func (h *History) Query(machine string, limit int) ([]HistoryEntry, error) {
 	if limit <= 0 || limit > historyPerMachine {
 		limit = historyPerMachine
@@ -132,10 +142,7 @@ func (h *History) Query(machine string, limit int) ([]HistoryEntry, error) {
 	return entries, rows.Err()
 }
 
-func (h *History) QueryMetrics(machine, name string, minTS, maxTS int64, maxPoints int, shared bool) ([]MetricEntry, error) {
-	if maxPoints <= 0 || maxPoints > metricsPerName*5 {
-		maxPoints = 100
-	}
+func (h *History) QueryMetrics(machine, name string, minTS, maxTS int64) ([]MetricEntry, error) {
 	q := `SELECT ts, name, value, unit FROM metrics WHERE machine = ?`
 	args := []any{machine}
 	if name != "" {
@@ -166,90 +173,7 @@ func (h *History) QueryMetrics(machine, name string, minTS, maxTS int64, maxPoin
 		}
 		entries = append(entries, e)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	var lo, hi int64
-	if shared {
-		lo = minTS
-		hi = maxTS
-	}
-	return downsampleMetrics(entries, lo, hi, maxPoints), nil
-}
-
-func downsampleMetrics(entries []MetricEntry, lo, hi int64, maxPoints int) []MetricEntry {
-	if maxPoints < 1 {
-		return entries
-	}
-	groups := map[string][]MetricEntry{}
-	order := []string{}
-	for _, e := range entries {
-		if _, ok := groups[e.Name]; !ok {
-			order = append(order, e.Name)
-		}
-		groups[e.Name] = append(groups[e.Name], e)
-	}
-	out := []MetricEntry{}
-	for _, name := range order {
-		out = append(out, downsampleGroup(groups[name], lo, hi, maxPoints)...)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].TS < out[j].TS })
-	return out
-}
-
-func downsampleGroup(g []MetricEntry, lo, hi int64, maxPoints int) []MetricEntry {
-	if len(g) <= maxPoints {
-		return g
-	}
-	return alignGroup(g, lo, hi, maxPoints)
-}
-
-// alignGroup downsamples g to at most maxPoints buckets whose boundaries are
-// aligned to the [lo, hi] window, so all machines share the same bucket centers.
-func alignGroup(g []MetricEntry, lo, hi int64, maxPoints int) []MetricEntry {
-	if len(g) == 0 {
-		return nil
-	}
-	if lo <= 0 {
-		lo = g[0].TS
-	}
-	if hi <= 0 {
-		hi = g[len(g)-1].TS
-	}
-	span := hi - lo
-	if span <= 0 {
-		span = 1
-	}
-	bucketSize := float64(span) / float64(maxPoints)
-	buckets := make([][]MetricEntry, maxPoints)
-	for _, e := range g {
-		idx := int(float64(e.TS-lo) / bucketSize)
-		if idx >= maxPoints {
-			idx = maxPoints - 1
-		}
-		if idx < 0 {
-			idx = 0
-		}
-		buckets[idx] = append(buckets[idx], e)
-	}
-	res := make([]MetricEntry, 0, maxPoints)
-	for i, b := range buckets {
-		if len(b) == 0 {
-			continue
-		}
-		var sum float64
-		for _, e := range b {
-			sum += e.Value
-		}
-		last := b[len(b)-1]
-		res = append(res, MetricEntry{
-			TS:    lo + int64((float64(i)+0.5)*bucketSize),
-			Name:  last.Name,
-			Value: sum / float64(len(b)),
-			Unit:  last.Unit,
-		})
-	}
-	return res
+	return entries, rows.Err()
 }
 
 func (h *History) QueryMetricsAll(minTS, maxTS int64) ([]MetricAggregate, [2]int64, error) {

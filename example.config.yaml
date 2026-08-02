@@ -62,7 +62,7 @@
 #     echo "load: $(cat /proc/loadavg)"
 #     echo "mem: $(free -h | awk '/^Mem:/ {print $3 "/" $2}')"
 #     echo "disk: $(df -h / | awk 'NR==2 {print $4 " free"}')"
-#     echo "top: $(ps -eo %cpu,comm --sort=-%cpu | head -4 | tr '\n' ';')"
+#     echo "top: $(ps --no-headers -eo %cpu,comm --sort=-%cpu | head -4 | tr '\n' ';')"
 #
 #   Script format, one line per item:
 #     name:status:info    -> a check chip (status: on / off / down / anything)

@@ -33,6 +33,7 @@ export interface Machine {
   icmp: Check
   tcp: Check
   lastPing: string | null
+  uptime?: number
   sshConfigured: boolean
   ssh: SshResult | null
   metrics: MetricStatus[]
