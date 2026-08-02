@@ -719,6 +719,16 @@ body {
   overflow: visible;
 }
 
+/* aggregate plot: blend overlapping machine lines with each other (and only
+   with each other) using the theme's --blend-overlap mode */
+.agg-plot {
+  isolation: isolate;
+}
+
+.agg-plot .agg-line {
+  mix-blend-mode: var(--blend-overlap, multiply);
+}
+
 .line-plot-wrap {
   position: relative;
 }

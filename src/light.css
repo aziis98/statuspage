@@ -48,6 +48,7 @@
   --shadow-color: #0004;
   --shadow: 0.35rem 0.35rem 0 var(--shadow-color);
   --shadow-lg: 0.55rem 0.55rem 0 var(--shadow-color);
+  --blend-overlap: multiply;
   --overlay: rgba(0, 0, 0, 0.35);
   --sheen: rgba(255, 255, 255, 0.75);
   --sheen-strong: rgba(255, 255, 255, 0.9);

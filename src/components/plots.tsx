@@ -189,7 +189,9 @@ export function AggregatePlot({
     })
     .filter((p): p is string => p !== null)
   const lineCount = Math.max(1, paths.length)
-  const opacity = 1 / lineCount
+  // gentler 1/sqrt(n) falloff: isolated lines stay visible while dense clusters
+  // still accumulate to a solid mass
+  const opacity = 1 / Math.sqrt(lineCount)
 
   const [hover, setHover] = useState<{
     sample: MetricEntry
@@ -254,12 +256,13 @@ export function AggregatePlot({
       >
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          class="line-plot"
+          class="line-plot agg-plot"
           preserveAspectRatio="none"
         >
           {paths.map((d, i) => (
             <path
               key={i}
+              class="agg-line"
               d={d}
               fill="none"
               stroke={color}
