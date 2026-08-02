@@ -78,12 +78,13 @@ export function LinePlot({
         onMouseMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect()
           const vbx = ((e.clientX - r.left) / r.width) * width
-          const targetT =
-            t0 + ((vbx - pad) / (width - pad * 2)) * tspan
+          const vby = ((e.clientY - r.top) / r.height) * height
           let idx = 0
           let best = Infinity
           for (let i = 0; i < values.length; i++) {
-            const d = Math.abs(times[i]! - targetT)
+            const dx = x(i) - vbx
+            const dy = y(values[i]!) - vby
+            const d = dx * dx + dy * dy
             if (d < best) {
               best = d
               idx = i
@@ -232,12 +233,14 @@ export function AggregatePlot({
         onMouseMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect()
           const vbx = ((e.clientX - r.left) / r.width) * width
-          const targetT = t0 + ((vbx - pad) / (width - pad * 2)) * tspan
+          const vby = ((e.clientY - r.top) / r.height) * height
           let best: { sample: MetricEntry; machine: string } | null = null
           let bd = Infinity
           for (const s of series) {
             for (const e0 of s.samples) {
-              const d = Math.abs(e0.ts - targetT)
+              const dx = xForT(e0.ts) - vbx
+              const dy = y(e0.value) - vby
+              const d = dx * dx + dy * dy
               if (d < bd) {
                 bd = d
                 best = { sample: e0, machine: s.machine }
